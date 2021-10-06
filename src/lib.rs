@@ -1,5 +1,4 @@
 extern crate base64;
-extern crate dotenv;
 use base64::encode;
 use hmacsha::HmacSha;
 use hmacsha::ShaTypes;
@@ -7,9 +6,6 @@ use percent_encoding::{percent_encode, AsciiSet, NON_ALPHANUMERIC};
 use reqwest::header::CONTENT_TYPE;
 use std::time::{SystemTime, UNIX_EPOCH};
 use textnonce::TextNonce;
-
-use dotenv::dotenv;
-use std::env;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -19,12 +15,18 @@ const FRAGMENT: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'-')
     .remove(b'~');
 
-struct SigningKey {
+pub struct SigningKey {
     consumer_secret: String,
     token_secret: String,
 }
 
 impl SigningKey {
+    pub fn new(consumer_secret: &str, token_secret: &str) -> Self {
+        Self {
+            consumer_secret: consumer_secret.to_string(),
+            token_secret: token_secret.to_string(),
+        }
+    }
     fn sign_signature(&self, signature: String) -> String {
         let key = format!(
             "{}&{}",
@@ -74,13 +76,21 @@ fn generate_timestamp() -> String {
     // "1318622958".to_string()
 }
 
-struct TwitterApi {
+pub struct TwitterApi {
     oauth_consumer_key: String,
     oauth_token: String,
     signing: SigningKey,
 }
 
 impl TwitterApi {
+    pub fn new(oauth_consumer_key: &str, oauth_token: &str, signing: SigningKey) -> Self {
+        Self {
+            oauth_consumer_key: oauth_consumer_key.to_string(),
+            oauth_token: oauth_token.to_string(),
+            signing,
+        }
+    }
+
     pub fn tweet(&self, msg: &str) -> Result<String> {
         let nonce = generate_nonce();
         let timestamp = generate_timestamp();
@@ -148,20 +158,4 @@ impl TwitterApi {
             percent_encode("1.0".as_bytes(), FRAGMENT)
         )
     }
-}
-
-fn main() -> Result<()> {
-    dotenv::from_filename("twitter_keys").ok();
-
-    let tweety = TwitterApi {
-        oauth_consumer_key: env::var("CONSUMER_KEY")?,
-        oauth_token: env::var("TOKEN")?,
-        signing: SigningKey {
-            consumer_secret: env::var("CONSUMER_SECRET")?,
-            token_secret: env::var("TOKEN_SECRET")?,
-        },
-    };
-
-    println!("{:?}", tweety.tweet("Lol"));
-    Ok(())
 }
