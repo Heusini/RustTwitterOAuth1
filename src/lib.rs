@@ -91,7 +91,7 @@ impl TwitterApi {
         }
     }
 
-    pub fn tweet(&self, msg: &str) -> Result<String> {
+    pub async fn tweet(&self, msg: &str) -> Result<String> {
         let nonce = generate_nonce();
         let timestamp = generate_timestamp();
 
@@ -106,7 +106,7 @@ impl TwitterApi {
 
         let oauth_header = self.create_oauth_header(&signed_signature, &nonce, &timestamp);
 
-        let client = reqwest::blocking::Client::new();
+        let client = reqwest::Client::new();
         let status_url = percent_encode(msg.as_bytes(), FRAGMENT).to_string();
 
         let result = client
@@ -114,9 +114,10 @@ impl TwitterApi {
             .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
             .header("Authorization", oauth_header)
             .body(format!("status={}", status_url))
-            .send()?;
+            .send()
+            .await?;
 
-        Ok(result.text()?)
+        Ok(result.text().await?)
     }
 
     fn encode_data(&self, msg: &str, nonce: &str, timestamp: &str) -> String {

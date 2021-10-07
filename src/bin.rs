@@ -16,6 +16,6 @@ fn main() -> Result<()> {
         SigningKey::new(&env::var("CONSUMER_SECRET")?, &env::var("TOKEN_SECRET")?),
     );
 
-    println!("{:?}", tweety.tweet("Lol"));
+    // println!("{:?}", tweety.tweet("Lol"));
     Ok(())
 }
